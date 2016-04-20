@@ -134,18 +134,42 @@ func (c *Cmd) Client() (*consulapi.Client, error) {
 		config.Token = csl.token
 	}
 
-	if configFile.sslEnabled {
-		config.Scheme = "https"
-	} else if csl.sslEnabled {
+	if configFile.sslEnabled || csl.sslEnabled {
 		config.Scheme = "https"
 	}
 
+	var sslVerify bool
+	if configFile.sslVerify || csl.sslVerify {
+		sslVerify = true
+	}
+
+	var sslCert string
+	if configFile.sslCert != "" {
+		sslCert = configFile.sslCert
+	} else if csl.sslCert != "" {
+		sslCert = csl.sslCert
+	}
+
+	var sslKey string
+	if configFile.sslKey != "" {
+		sslKey = configFile.sslKey
+	} else if csl.sslKey != "" {
+		sslKey = csl.sslKey
+	}
+
+	var sslCaCert string
+	if configFile.sslCaCert != "" {
+		sslCaCert = configFile.sslCaCert
+	} else if csl.sslCaCert != "" {
+		sslCaCert = csl.sslCaCert
+	}
+
 	if config.Scheme == "https" {
-		if csl.sslCert != "" {
-			if csl.sslKey == "" {
+		if sslCert != "" {
+			if sslKey == "" {
 				return nil, errors.New("--ssl-key must be provided in order to use certificates for authentication")
 			}
-			clientCert, err := tls.LoadX509KeyPair(csl.sslCert, csl.sslKey)
+			clientCert, err := tls.LoadX509KeyPair(sslCert, sslKey)
 			if err != nil {
 				return nil, err
 			}
@@ -154,12 +178,12 @@ func (c *Cmd) Client() (*consulapi.Client, error) {
 			csl.tlsConfig.BuildNameToCertificate()
 		}
 
-		if csl.sslVerify {
-			if csl.sslCaCert == "" {
+		if sslVerify {
+			if sslCaCert == "" {
 				return nil, errors.New("--ssl-ca-cert must be provided in order to use certificates for verification")
 			}
 
-			caCert, err := ioutil.ReadFile(csl.sslCaCert)
+			caCert, err := ioutil.ReadFile(sslCaCert)
 			if err != nil {
 				return nil, err
 			}
@@ -173,7 +197,7 @@ func (c *Cmd) Client() (*consulapi.Client, error) {
 	transport := new(http.Transport)
 	transport.TLSClientConfig = csl.tlsConfig
 
-	if !csl.sslVerify {
+	if !sslVerify {
 		transport.TLSClientConfig.InsecureSkipVerify = true
 	}
 	config.HttpClient.Transport = transport

@@ -43,7 +43,7 @@ func Init(name, version string) *Cmd {
 	c.root.PersistentFlags().StringVar(&c.consul.env, "env", "dev", "default environment")
 	c.root.PersistentFlags().StringVar(&c.consul.address, "consul", "127.0.0.1:8500", "Consul address:port")
 	c.root.PersistentFlags().BoolVar(&c.consul.sslEnabled, "ssl", false, "Use HTTPS when talking to Consul")
-	c.root.PersistentFlags().BoolVar(&c.consul.sslVerify, "ssl-verify", true, "Verify certificates when connecting via SSL")
+	c.root.PersistentFlags().BoolVar(&c.consul.sslVerify, "ssl-verify", false, "Verify certificates when connecting via SSL")
 	c.root.PersistentFlags().StringVar(&c.consul.sslCert, "ssl-cert", "", "Path to an SSL client certificate for authentication")
 	c.root.PersistentFlags().StringVar(&c.consul.sslKey, "ssl-key", "", "Path to an SSL client certificate key for authentication")
 	c.root.PersistentFlags().StringVar(&c.consul.sslCaCert, "ssl-ca-cert", "", "Path to a CA certificate file to validate the Consul server")
