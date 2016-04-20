@@ -40,6 +40,10 @@ func Init(name, version string) *Cmd {
 		},
 	}
 
+	configDesc := `Config file for different environment and different flags.
+                             Note: this takes precedence over the command line option`
+
+	c.root.PersistentFlags().StringVar(&c.consul.configFile, "config", "~/.consul-cli.toml", configDesc)
 	c.root.PersistentFlags().StringVar(&c.consul.env, "env", "dev", "default environment")
 	c.root.PersistentFlags().StringVar(&c.consul.address, "consul", "127.0.0.1:8500", "Consul address:port")
 	c.root.PersistentFlags().BoolVar(&c.consul.sslEnabled, "ssl", false, "Use HTTPS when talking to Consul")

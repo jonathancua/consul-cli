@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"path/filepath"
 	"strings"
 
 	consulapi "github.com/hashicorp/consul/api"
@@ -118,7 +119,7 @@ func (c *Cmd) Client() (*consulapi.Client, error) {
 	config := consulapi.DefaultConfig()
 	csl := c.consul
 	csl.tlsConfig = new(tls.Config)
-	configFile := c.GetConfig()
+	configFile := c.GetConfig(c.consul.configFile)
 
 	// The address in the file takes precedence than the
 	// one supplied on the command-line
@@ -217,9 +218,17 @@ func (c *Cmd) Client() (*consulapi.Client, error) {
 	return client, nil
 }
 
-func (c *Cmd) GetConfig() *configFromFile {
+func (c *Cmd) GetConfig(configFile string) *configFromFile {
 	config := &configFromFile{}
-	viper.SetConfigName(".consul-cli")
+
+	configFile = strings.TrimSuffix(configFile,
+		filepath.Ext(configFile))
+
+	if configFile[:2] == "~/" {
+		configFile = strings.Replace(configFile, "~/", "", 1)
+	}
+
+	viper.SetConfigName(configFile)
 	viper.AddConfigPath("$HOME")
 	viper.ReadInConfig()
 
