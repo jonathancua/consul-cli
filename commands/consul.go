@@ -11,9 +11,12 @@ import (
 
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 type consul struct {
+	configFile string
+	env        string
 	address    string
 	sslEnabled bool
 	sslVerify  bool
@@ -27,6 +30,16 @@ type consul struct {
 
 	dc        string
 	waitIndex uint64
+}
+
+type configFromFile struct {
+	address    string
+	sslEnabled bool
+	sslVerify  bool
+	sslCert    string
+	sslKey     string
+	sslCaCert  string
+	token      string
 }
 
 func (c *Cmd) ACL() (*consulapi.ACL, error) {
@@ -105,31 +118,29 @@ func (c *Cmd) Client() (*consulapi.Client, error) {
 	config := consulapi.DefaultConfig()
 	csl := c.consul
 	csl.tlsConfig = new(tls.Config)
+	configFile := c.GetConfig()
 
-	if csl.address != "" {
+	// The address in the file takes precedence than the
+	// one supplied on the command-line
+	if configFile.address != "" {
+		config.Address = configFile.address
+	} else if csl.address != "" {
 		config.Address = c.consul.address
 	}
 
-	if csl.token != "" && csl.tokenFile != "" {
-		return nil, errors.New("--token and --token-file can not both be provided")
-	}
-
-	if csl.tokenFile != "" {
-		b, err := ioutil.ReadFile(csl.tokenFile)
-		if err != nil {
-			return nil, fmt.Errorf("Error reading token file: %s", err)
-		}
-
-		config.Token = strings.TrimSpace(string(b))
-	}
-
-	if csl.token != "" {
+	if configFile.token != "" {
+		config.Token = configFile.token
+	} else if csl.token != "" {
 		config.Token = csl.token
 	}
 
-	if csl.sslEnabled {
+	if configFile.sslEnabled {
 		config.Scheme = "https"
+	} else if csl.sslEnabled {
+		config.Scheme = "https"
+	}
 
+	if config.Scheme == "https" {
 		if csl.sslCert != "" {
 			if csl.sslKey == "" {
 				return nil, errors.New("--ssl-key must be provided in order to use certificates for authentication")
@@ -180,6 +191,45 @@ func (c *Cmd) Client() (*consulapi.Client, error) {
 	}
 
 	return client, nil
+}
+
+func (c *Cmd) GetConfig() *configFromFile {
+	config := &configFromFile{}
+	viper.SetConfigName(".consul-cli")
+	viper.AddConfigPath("$HOME")
+	viper.ReadInConfig()
+
+	consulAddrStr := fmt.Sprintf("%s.consul", c.consul.env)
+	consulTokenStr := fmt.Sprintf("%s.token", c.consul.env)
+	consulSslStr := fmt.Sprintf("%s.ssl", c.consul.env)
+	consulSslVerifyStr := fmt.Sprintf("%s.ssl-verify", c.consul.env)
+	consulSslCertStr := fmt.Sprintf("%s.ssl-cert", c.consul.env)
+	consulSslKeyStr := fmt.Sprintf("%s.ssl-key", c.consul.env)
+	consulSslCaCertStr := fmt.Sprintf("%s.ssl-ca-cert", c.consul.env)
+
+	if viper.GetString(consulAddrStr) != "" {
+		config.address = viper.GetString(consulAddrStr)
+	}
+	if viper.GetBool(consulSslStr) {
+		config.sslEnabled = viper.GetBool(consulSslStr)
+	}
+	if viper.GetBool(consulSslVerifyStr) {
+		config.sslVerify = viper.GetBool(consulSslVerifyStr)
+	}
+	if viper.GetString(consulSslCertStr) != "" {
+		config.sslCert = viper.GetString(consulSslCertStr)
+	}
+	if viper.GetString(consulSslCaCertStr) != "" {
+		config.sslKey = viper.GetString(consulSslKeyStr)
+	}
+	if viper.GetString(consulSslCaCertStr) != "" {
+		config.sslCaCert = viper.GetString(consulSslCaCertStr)
+	}
+	if viper.GetString(consulTokenStr) != "" {
+		config.token = viper.GetString(consulTokenStr)
+	}
+
+	return config
 }
 
 func (c *Cmd) WriteOptions() *consulapi.WriteOptions {

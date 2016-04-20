@@ -40,6 +40,7 @@ func Init(name, version string) *Cmd {
 		},
 	}
 
+	c.root.PersistentFlags().StringVar(&c.consul.env, "env", "dev", "default environment")
 	c.root.PersistentFlags().StringVar(&c.consul.address, "consul", "127.0.0.1:8500", "Consul address:port")
 	c.root.PersistentFlags().BoolVar(&c.consul.sslEnabled, "ssl", false, "Use HTTPS when talking to Consul")
 	c.root.PersistentFlags().BoolVar(&c.consul.sslVerify, "ssl-verify", true, "Verify certificates when connecting via SSL")
@@ -48,7 +49,6 @@ func Init(name, version string) *Cmd {
 	c.root.PersistentFlags().StringVar(&c.consul.sslCaCert, "ssl-ca-cert", "", "Path to a CA certificate file to validate the Consul server")
 	c.root.PersistentFlags().Var((*auth)(c.consul.auth), "auth", "The HTTP basic authentication username (and optional password) separated by a colon")
 	c.root.PersistentFlags().StringVar(&c.consul.token, "token", "", "The Consul ACL token")
-	c.root.PersistentFlags().StringVar(&c.consul.tokenFile, "token-file", "", "Path to file containing Consul ACL token")
 
 	c.initAcl()
 	c.initAgent()
